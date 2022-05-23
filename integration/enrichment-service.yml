@@ -1,0 +1,226 @@
+server:
+  port: 0
+
+spring:
+  jmx:
+    enabled: true
+    default-domain: enrichment
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        documentsToEnrich:
+          group: groupDocumentsToEnrich
+        enrichedAccess:
+          # Tenemos que tener un grupo diferente por cada consumidor para lograr
+          # que esto opere en modalidad publish/subscribe. Si aca ponemos el mismo consumer
+          # group para todos los enricher service, los datos se van a ir a para a un solo
+          # consumer, quedando los demas en estado idle
+          group: groupEnrichedAccess:${random.value}
+  jpa:
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+
+adinettvdb:
+  datasource:
+    initialize: false
+    url: jdbc:mysql://127.0.0.1:23306/adinettv?useSSL=false&zeroDateTimeBehavior=convertToNull
+    username: root
+    password: antel
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+
+ampdb:
+  datasource:
+    initialize: false
+    url: jdbc:mysql://127.0.0.1:23307/ampdb?useSSL=false&zeroDateTimeBehavior=convertToNull
+    username: root
+    password: antel
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+  instance:
+    instance-id: ${spring.application.name}:${random.value}
+
+logging:
+  file: ${user.dir}/logs/enrichment${LOGAN_INSTANCE_ID:}.log
+  level:
+    uy.com.antel.logan: INFO
+    com.netflix: ERROR
+    org.springframework: ERROR
+    uy.com.antel.logan.support.logging: OFF
+
+schedulers:
+  # second, minute, hour, day of month, month, day(s) of week
+  vera:
+    # Una vez cada 15 minutos, 0, 15, 30, 45
+    reload-cache: 0 0/15 * * * *
+  amp:
+    # Una vez cada 15 minutos, 0, 15, 30, 45
+    reload-cache: 0 0/15 * * * *
+
+cache:
+  # Es el numero de dias que vamos a ir al pasado desde la fecha de carga del cache para buscar contenido
+  # No tiene sentido en general cargar contenido hacia el pasado
+  backward-days-to-load-content: 10
+  # Cantidad de user agents que vamos a cachear (100K es un numero razonable, pensando en un partido con 100K usuarios diferentes como numero alto)
+  user-agent-size: 100000
+
+heatmap:
+  filters:
+    allowed-ips: "167.56.0.0/13,179.24.0.0/16,179.25.0.0/16,179.26.0.0/16,186.48.0.0/16,186.49.0.0/16,186.50.0.0/16,186.52.0.0/16,186.53.0.0/16,186.54.0.0/16,186.55.0.0/16,190.133.0.0/16,190.134.0.0/16,190.135.0.0/16"
+
+parameters:
+  reprocessing: "REPROCESSING"
+  geoenrich: "GEOENRICH"
+
+enrichment:
+  # The content enricher must be the last one, as it uses information added by the token enricher
+  activeEnrichers: enricherSignalName,enricherToken,enricherSite,enricherHeatmap,enricherUserAgent,enricherGeolocation,enricherContent
+  date_format_utc: yyyy-MM-dd'T'HH:mm:ss
+  geolocation:
+    database:
+      path: ${user.dir}/config-data/geolocation/GeoLite2-City.mmdb
+  documents:
+    properties:
+      c_ip_field: c-ip
+      c_useragent_field: cs(User-Agent)
+      dateTime_field: dateTime
+      content_ref_id_field: cntRefId
+      site_id_field: siteId
+      site_uri_field: siteUri
+      content_id_field: contentId
+      content_name_field: contentName
+      content_package_field: contentPackage
+      is_video_field: isVideo
+      content_type_field: cntType
+      signal_id_field: signalId
+      signal_name_field: signalName
+      departamento_field: dpto
+      localidad_field: loc
+      token_field: token
+      user_id_field: userId
+      reference_id_field: referenceId
+      frontend_id_field: frontendId
+      device_id_field: deviceId
+      device_class_field: deviceClass
+      device_name_field: deviceName
+      os_class_field: osClass
+      os_name_field: osName
+      agent_class_field: agentClass
+      agent_name_field: agentName
+      agent_version_field: agentVersion
+      geo_country_name_field: geoCountryName
+      geo_city_name_field: geoCityName
+      geo_postal_field: geoPostal
+      geo_state_field: geoState
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+
+# Esta bandera indica si los mensajes deben ser descartados al llegar el momento de procesar en este microservicio
+processing:
+  discard: false
+
+---
+spring:
+  profiles: testing
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04:9092, ek-app05:9092, ek-app06:9092
+  jpa:
+    show-sql: false
+
+adinettvdb:
+  datasource:
+    initialize: false
+    url: jdbc:mysql://db_adinettv:3306/adinettv?zeroDateTimeBehavior=convertToNull
+    username: logan_test_lec
+    password: 9rAumbw1coF8i2j
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+
+ampdb:
+  datasource:
+    initialize: false
+    url: jdbc:mysql://db_amp:3306/ampdb?zeroDateTimeBehavior=convertToNull
+    username: logan_test_lec
+    password: p3WD84mwwYmvx46
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+
+enrichment:
+  geolocation:
+    database:
+      path: /opt/logan/config-data/geolocation/GeoLite2-City.mmdb
+
+logging:
+  file: /var/log/logan/enrichment${LOGAN_INSTANCE_ID:}.log
+  level:
+    uy.com.antel.logan.integration.enrichment.enrichers: INFO
+
+---
+spring:
+  profiles: produccion
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04:9092, ek-app05:9092, ek-app06:9092
+  jpa:
+    show-sql: false
+
+adinettvdb:
+  datasource:
+    initialize: false
+    url: jdbc:mysql://db_adinettv:3306/adinettv?zeroDateTimeBehavior=convertToNull
+    username: logan_prod_lec
+    password: YS6qZmV306Beift
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+
+ampdb:
+  datasource:
+    initialize: false
+    url: jdbc:mysql://db_amp:3306/ampdb?zeroDateTimeBehavior=convertToNull
+    username: logan_prod_lec
+    password: EQUSN20AcSxrbsc
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+
+enrichment:
+  geolocation:
+    database:
+      path: /opt/logan/config-data/geolocation/GeoLite2-City.mmdb
+
+logging:
+  file: /var/log/logan/enrichment${LOGAN_INSTANCE_ID:}.log
+

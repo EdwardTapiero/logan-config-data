@@ -1,0 +1,143 @@
+server:
+  port: 0
+
+spring:
+  jmx:
+    enabled: true
+    default-domain: ingest
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        filesToProcess:
+          group: groupFilesToProcess
+
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+  instance:
+    instance-id: ${spring.application.name}:${random.value}
+
+logging:
+  file: ${user.dir}/logs/ingest${LOGAN_INSTANCE_ID:}.log
+  level:
+    uy.com.antel.logan: INFO
+    com.netflix: ERROR
+    org.springframework: ERROR
+    uy.com.antel.logan.support.logging: OFF
+
+ingest:
+  fileUtil:
+    directorios:
+      temp: ${user.dir}/cdn/temp/
+      input: ${user.dir}/cdn/input/
+      processing: ${user.dir}/cdn/processing/
+      processed: ${user.dir}/cdn/processed/
+      processed_with_error: ${user.dir}/cdn/processed_with_error/
+      processed_with_suspicion: ${user.dir}/cdn/processed_with_suspicion/
+    archivos:
+      unzipBufferSize: 524288 # 512K
+      prefixToProcess: httpaccess
+  parameters:
+    query_string_separator: "?"
+    parameters_separator: "&"
+    key_value_separator: "="
+    document_field_name: "PARAMETERS"
+
+parsing:
+  headers: "s-dns,date,time,x-duration,c-ip,c-port,c-vx-zone,c-vx-gloc,x-tls-version,x-ciphersuite,cs-method,cs-uri,cs-version,cs(User-Agent),cs(Referer),cs(Cookie),cs(Range),sc-status,s-cachestatus,sc-bytes,sc-stream-bytes,sc-dscp,s-ip,s-vx-rate,s-vx-rate-status,x-vx-serial,rs-stream-bytes,rs-bytes,cs-vx-token,sc-vx-download-rate,x-protohash,sc(Content-Range),s-request-id,s-flags"
+  ignoreLineCharacter: "#"
+
+filter:
+  activeFilters: filterCSMethod,filterSCStatus,filterDateTime,filterContentReference,filterToken
+  documents:
+    properties:
+      cs_method: cs-method
+      sc_status: sc-status
+      cs_uri: cs-uri
+      content_reference_id: cntRefId
+      content_type: cntType
+      token: token
+      date: date
+      time: time
+      date_time: dateTime
+      bytes: sc-bytes
+      duration: x-duration
+      file: file
+      site_id: siteId
+    filters:
+      cs_method: GET
+      ok_code: 200
+    # Solo estos campos son propagados a las demas etapas de procesamiento, reduciendo considerablemente el
+    # consumo de espacio y recursos necesarios para procesar documentos luego
+    result-fields: "s-dns,c-ip,dateTime,cntRefId,cntType,token,x-duration,sc-bytes,file,cs(User-Agent),siteId"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+
+processing:
+  # Este valor indica el tamaño del bloque que se utilizara para enviar los documentos JSON
+  batch-size: 100
+  # Esta bandera indica si los mensajes deben ser descartados al llegar el momento de procesar en este microservicio
+  discard: false
+
+---
+spring:
+  profiles: testing
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04:9092, ek-app05:9092, ek-app06:9092
+
+ingest:
+  fileUtil:
+    directorios:
+      temp: /srv/data/cdn/temp/
+      input: /srv/data/cdn/input/
+      processing: /srv/data/cdn/processing/
+      processed: /srv/data/cdn/processed/
+      processed_with_error: /srv/data/cdn/processed_with_error/
+      processed_with_suspicion: /srv/data/cdn/processed_with_suspicion/
+
+logging:
+  file: /var/log/logan/ingest${LOGAN_INSTANCE_ID:}.log
+  level:
+    uy.com.antel.logan.integration.ingest.filters: INFO
+
+processing:
+  batch-size: 100
+
+---
+spring:
+  profiles: produccion
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04:9092, ek-app05:9092, ek-app06:9092
+
+ingest:
+  fileUtil:
+    directorios:
+      temp: /srv/data/cdn/temp/
+      input: /srv/data/cdn/input/
+      processing: /srv/data/cdn/processing/
+      processed: /srv/data/cdn/processed/
+      processed_with_error: /srv/data/cdn/processed_with_error/
+      processed_with_suspicion: /srv/data/cdn/processed_with_suspicion/
+
+logging:
+  file: /var/log/logan/ingest${LOGAN_INSTANCE_ID:}.log
+
+processing:
+  batch-size: 100

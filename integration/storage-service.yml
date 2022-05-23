@@ -1,0 +1,230 @@
+server:
+  port: 0
+
+spring:
+  jmx:
+    enabled: true
+    default-domain: storage
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        documentsToStore:
+          group: groupDocumentsToStore
+
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+  instance:
+    instance-id: ${spring.application.name}:${random.value}
+
+logging:
+  file: ${user.dir}/logs/storage${LOGAN_INSTANCE_ID:}.log
+  level:
+    uy.com.antel.logan: INFO
+    com.netflix: ERROR
+    org.springframework: ERROR
+    uy.com.antel.logan.support.logging: OFF
+
+storage:
+  date_format_utc: yyyy-MM-dd
+  dateTime_format_utc: yyyy-MM-dd'T'HH:mm:ss
+  mappings:
+    mappingDuration:
+      documentField: "x-duration"
+      objectField: "duration"
+      ignored: false
+    mappingClientIp:
+      documentField: "c-ip"
+      objectField: "clientIp"
+      ignored: false
+    mappingBytes:
+      documentField: "sc-bytes"
+      objectField: "scBytes"
+      ignored: false
+    mappingToken:
+      documentField: "token"
+      objectField: "token"
+      ignored: false
+    mappingDateTime:
+      documentField: "dateTime"
+      objectField: "dateTime"
+      ignored: false
+    mappingContentId:
+      documentField: "contentId"
+      objectField: "contentId"
+      ignored: false
+    mappingContentName:
+      documentField: "contentName"
+      objectField: "contentName"
+      ignored: false
+    mappingContentPackage:
+      documentField: "contentPackage"
+      objectField: "contentPackage"
+      ignored: false
+    mappingSignalId:
+      documentField: "signalId"
+      objectField: "signalId"
+      ignored: false
+    mappingSignalName:
+      documentField: "signalName"
+      objectField: "signalName"
+      ignored: false
+    mappingVideoName:
+      documentField: "isVideo"
+      objectField: "isVideo"
+      ignored: false
+    mappingDpto:
+      documentField: "dpto"
+      objectField: "dpto"
+      ignored: false
+    mappingLoc:
+      documentField: "loc"
+      objectField: "loc"
+      ignored: false
+    mappingAppliance:
+      documentField: "s-dns"
+      objectField: "appliance"
+      ignored: false
+    mappingFile:
+      documentField: "file"
+      objectField: "file"
+      ignored: false
+    mappingUserId:
+      documentField: "userId"
+      objectField: "userId"
+      ignored: false
+    mappingDeviceClass:
+      documentField: "deviceClass"
+      objectField: "deviceClass"
+      ignored: false
+    mappingDeviceName:
+      documentField: "deviceName"
+      objectField: "deviceName"
+      ignored: false
+    mappingOSClass:
+      documentField: "osClass"
+      objectField: "osClass"
+      ignored: false
+    mappingOSName:
+      documentField: "osName"
+      objectField: "osName"
+      ignored: false
+    mappingAgentClass:
+      documentField: "agentClass"
+      objectField: "agentClass"
+      ignored: false
+    mappingAgentName:
+      documentField: "agentName"
+      objectField: "agentName"
+      ignored: false
+    mappingAgentVersion:
+      documentField: "agentVersion"
+      objectField: "agentVersion"
+      ignored: false
+    mappingSiteUri:
+      documentField: "siteUri"
+      objectField: "siteUri"
+      ignored: false
+    mappingGeoCountryName:
+      documentField: "geoCountryName"
+      objectField: "geoCountryName"
+      ignored: false
+    mappingGeoCityName:
+      documentField: "geoCityName"
+      objectField: "geoCityName"
+      ignored: false
+    mappingGeoPostal:
+      documentField: "geoPostal"
+      objectField: "geoPostal"
+      ignored: false
+    mappingGeoState:
+      documentField: "geoState"
+      objectField: "geoState"
+      ignored: false
+    mappingReferenceId:
+      documentField: "referenceId"
+      objectField: "referenceId"
+      ignored: false
+    mappingFrontendId:
+      documentField: "frontendId"
+      objectField: "frontendId"
+      ignored: false
+    mappingDeviceId:
+      documentField: "deviceId"
+      objectField: "deviceId"
+      ignored: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+
+elasticsearch:
+  cluster-name: logan-cluster
+  cluster-nodes: 127.0.0.1:9200
+  bulkprocessor:
+    # Indica cuantas acciones se acumulan en el bulk antes de mandarselo a elastic
+    bulk-action-count: 20000
+    # Indica cuantos mb se acumulan en el bulk antes de mandarselo a elastic
+    bulk-size-mb: 5
+    # Indica cuanto tiempo pasa antes de mandar el bulk a elastic
+    bulk-flush-interval-seconds: 60
+
+# Esta bandera indica si los mensajes deben ser descartados al llegar el momento de procesar en este microservicio
+processing:
+  discard: false
+
+---
+spring:
+  profiles: testing
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04:9092,ek-app05:9092,ek-app06:9092
+
+logging:
+  file: /var/log/logan/storage${LOGAN_INSTANCE_ID:}.log
+
+elasticsearch:
+  cluster-name: logan-elastic
+  cluster-nodes: ek-app10:9200,ek-app11:9200,ek-app12:9200
+  bulkprocessor:
+    # Indica cuantas acciones se acumulan en el bulk antes de mandarselo a elastic
+    bulk-action-count: 5000
+    # Indica cuantos mb se acumulan en el bulk antes de mandarselo a elastic
+    bulk-size-mb: 2
+    # Indica cuanto tiempo pasa antes de mandar el bulk a elastic
+    bulk-flush-interval-seconds: 20
+
+---
+spring:
+  profiles: produccion
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04:9092,ek-app05:9092,ek-app06:9092
+
+logging:
+  file: /var/log/logan/storage${LOGAN_INSTANCE_ID:}.log
+
+elasticsearch:
+  cluster-name: logan-elastic
+  cluster-nodes: ek-app10:9200,ek-app11:9200,ek-app12:9200
+  bulkprocessor:
+    # Indica cuantas acciones se acumulan en el bulk antes de mandarselo a elastic
+    bulk-action-count: 20000
+    # Indica cuantos mb se acumulan en el bulk antes de mandarselo a elastic
+    bulk-size-mb: 5
+    # Indica cuanto tiempo pasa antes de mandar el bulk a elastic
+    bulk-flush-interval-seconds: 60
+

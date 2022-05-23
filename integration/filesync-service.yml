@@ -1,0 +1,188 @@
+server:
+  port: 0
+
+spring:
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost
+          defaultBrokerPort: 9092
+      bindings:
+        packetSource-out-0:
+          destination: packet
+          content-type: application/json
+      source: packetSource
+
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+  instance:
+    instance-id: ${server.address}:${spring.application.name}:${random.value}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+
+logging:
+  file: ${user.dir}/logs/filesync${LOGAN_INSTANCE_ID:}.log
+  level:
+    uy.com.antel: INFO
+    com.netflix: ERROR
+
+parameters:
+  reprocessing: "REPROCESSING"
+  geoenrich: "GEOENRICH"
+
+files:
+  folders:
+    ftp-source: ${user.dir}/cdn/ftpinput/
+    reprocess-source: ${user.dir}/cdn/reprocessinput/
+    target: ${user.dir}/cdn/input/
+  names:
+    prefix: "httpaccess"
+    suffix: ".gz"
+  copy-proccess:
+    # Representa la cantidad de archivos que son tomados para procesar
+    batch-size: 1
+    # Los archivos son aceptados por el servicio para ser copiados, solo si pasaron esta cantidad de segundos desde que se modifico el archivo
+    delay-seconds-before-copy: 30
+    # Los archivos son aceptados solo si no pasaron mas de esta cantidad de segundos desde que se modificaron por ultima vez
+    backward-seconds-to-consider: -1
+    # Buffer usado para la copia de los archivos
+    buffer-size: 524288 # 512K
+    # Indica si debemos remover el archivo origen cuando se hace la copia
+    remove-source-file: false
+  replication:
+    logan-test:
+      path: ${user.dir}/cdn-replication/logan-test/
+      enabled: true
+    bigdata:
+      path: ${user.dir}/cdn-replication/bigdata/
+      enabled: true
+
+quartz:
+  enabled: true
+  cron:
+    file_sync_expression: 0/30 * * * * ? *
+
+---
+spring:
+  config:
+    activate:
+      on-profile: testing
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04, ek-app05, ek-app06
+          defaultBrokerPort: 9092
+        bindings:
+          packetSource-out-0:
+            destination: packet
+            content-type: application/json
+        source: packetSource
+
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+  instance:
+    instance-id: ${server.address}:${spring.application.name}:${random.value}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+
+files:
+  folders:
+    ftp-source: /srv/data/cdn/ftpinput/
+    reprocess-source: /srv/data/cdn/reprocessinput/
+    target: /srv/data/cdn/input/
+  names:
+    prefix: "httpaccess"
+    suffix: ".gz"
+  copy-proccess:
+    batch-size: 50
+    delay-seconds-before-copy: 30
+    remove-source-file: true
+  replication:
+    logan-test:
+      path: ""
+      enabled: false
+    bigdata:
+      path: ""
+      enabled: false
+
+logging:
+  file: /var/log/logan/filesync${LOGAN_INSTANCE_ID:}.log
+
+---
+spring:
+  config:
+    activate:
+      on-profile: produccion
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ek-app04, ek-app05, ek-app06
+          defaultBrokerPort: 9092
+        bindings:
+          packetSource-out-0:
+            destination: packet
+            content-type: application/json
+        source: packetSource
+
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+  instance:
+    instance-id: ${server.address}:${spring.application.name}:${random.value}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+
+files:
+  folders:
+    ftp-source: /srv/data/cdn/ftpinput/
+    reprocess-source: /srv/data/cdn/reprocessinput/
+    target: /srv/data/cdn/input/
+  names:
+    prefix: "httpaccess"
+    suffix: ".gz"
+  copy-proccess:
+    batch-size: 50
+    delay-seconds-before-copy: 30
+    remove-source-file: true
+  replication:
+    logan-test:
+      path: /srv/replication/logan-test/
+      enabled: true
+    bigdata:
+      path: /srv/replication/bigdata/
+      enabled: true
+
+logging:
+  file: /var/log/logan/filesync${LOGAN_INSTANCE_ID:}.log
+  level:
+    uy.com.antel: INFO
+    com.netflix: ERROR
